@@ -20,11 +20,7 @@ const RIRBWPRST: u16 = 1 << 15;
 // RIRBCTL
 const RINTCTL:   u8 = 1 << 0; // 1 bit
 const RIRBDMAEN: u8 = 1 << 1; // 1 bit
-const RIRBOIC:   u8 = 1 << 2; // 1 bit
 
-// RIRBOIS
-const RIRBOIS:   u8 = 1 << 2; // 1 bit
-const RINTFL:    u8 = 1 << 0;
 
 const CORB_OFFSET: usize = 0x00;
 const RIRB_OFFSET: usize = 0x10;
@@ -154,7 +150,7 @@ impl Corb {
 		 * So maybe just resetting the read pointer
 		 * and leaving for the specific model?
 		 */
-		if false {
+		if true {
 			self.regs.corbrp.writef(CORBRPRST, true);
 		
 		}
@@ -280,7 +276,7 @@ impl Rirb {
 	}
 
 	pub fn start(&mut self) {
-		self.regs.rirbctl.writef(RIRBDMAEN,true);
+		self.regs.rirbctl.writef(RIRBDMAEN | RINTCTL,true);
 	}
 
 	pub fn stop(&mut self) {
@@ -311,14 +307,7 @@ impl Rirb {
 		self.rirb_rp = read_pos;
 		print!("Rirb: {:08X}\n", res);
 		res
-	}
 
-	fn enable_interrupts(&mut self) {
-		self.regs.rirbctl.writef(RINTCTL | RIRBOIC, true);
-	}
-
-	fn clear_interrupts(&mut self) {
-		self.regs.rirbsts.writef(RIRBOIS | RINTFL, true);
 	}
 
 }
@@ -472,12 +461,6 @@ impl CommandBuffer {
 			self.corb.start();
 			self.rirb.start();
 		}
-
-	}
-
-
-	pub fn clear_interrupts(&mut self) {
-		self.rirb.clear_interrupts();
 
 	}
 

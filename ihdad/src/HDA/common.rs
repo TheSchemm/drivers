@@ -39,7 +39,7 @@ impl fmt::Display for HDAWidgetType {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 #[repr(u8)]
 pub enum DefaultDevice {
 	LineOut          = 0x0,
@@ -175,14 +175,6 @@ impl ConfigurationDefault {
 			DefaultDevice::DigitalOtherIn => true,
 			_ => false,
 		}
-	}
-
-	pub fn sequence(&self) -> u8 {
-		(self.value & 0xF)  as u8
-	}
-
-	pub fn default_association(&self) -> u8 {
-		((self.value >> 4) & 0xF)  as u8
 	}
 }
 
