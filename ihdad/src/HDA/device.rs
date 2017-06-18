@@ -35,6 +35,12 @@ const CRST:   u32 = 1 << 0; // 1 bit
 const FNCTRL: u32 = 1 << 1; // 1 bit
 const UNSOL:  u32 = 1 << 8; // 1 bit
 
+// INTCTL
+
+const GIE:    u32 = 1 << 31;
+const CIE:    u32 = 1 << 30;
+
+
 // CORBCTL
 const CMEIE:   u8 = 1 << 0; // 1 bit
 const CORBRUN: u8 = 1 << 1; // 1 bit
@@ -133,10 +139,6 @@ pub struct IntelHDA {
 
 	base: usize,
 	regs: &'static mut Regs,
-
-
-	//corb_rirb_base_phys: usize,
-
 	
 	cmd: CommandBuffer,
 
@@ -187,7 +189,7 @@ impl IntelHDA {
 				.expect("ihdad: failed to map address for buffer descriptor list.") 
 		};
 
-		print!("Virt: {:016X}, Phys: {:016X}\n", buff_desc_virt, buff_desc_phys);
+		// print!("Virt: {:016X}, Phys: {:016X}\n", buff_desc_virt, buff_desc_phys);
 		
 
 		let buff_desc = &mut *(buff_desc_virt as *mut [BufferDescriptorListEntry;256]);
@@ -254,12 +256,10 @@ impl IntelHDA {
 		self.reset_controller();
 
 		let use_immediate_command_interface = match self.vend_prod {
-			
-			0x8086_2668 => false,
-			_ => true,
+			_ => false,
 		};	
 
-		self.cmd.init(use_immediate_command_interface);	
+		self.cmd.init(true);	
 		self.init_interrupts();
 		
 		true
@@ -270,7 +270,7 @@ impl IntelHDA {
 		// This just enables the first output stream interupt and the global interrupt
 
 		// TODO: No magic numbers! Bad Schemm.
-		self.regs.intctl.write((1 << 31) | /* (1 << 30) |*/ (1 << 4));
+		self.regs.intctl.write(GIE | /*CIE |*/ (1 << 4));
 	}
 
 
@@ -423,13 +423,13 @@ impl IntelHDA {
 						}
 
 
-						print!("{:02X}{:02X} {}\n", widget.addr().0, widget.addr().1, config);
+						// print!("{:02X}{:02X} {}\n", widget.addr().0, widget.addr().1, config);
 						
 					},
 					_ => {},
 				}
 				
-				print!("{}\n", widget);
+				// print!("{}\n", widget);
 				self.widget_map.insert(widget.addr(), widget);
 			}	
 		}
@@ -839,7 +839,6 @@ impl IntelHDA {
 			open_block = open_block - 1;
 		}
 
-		//print!("Status: {:02X} Pos: {:08X} Output CTL: {:06X}\n", output.status(), output.link_position(), output.control());
 		while open_block == os.current_block() {
 
 			open_block = (output.link_position() as usize) / os.block_size();
@@ -863,7 +862,7 @@ impl IntelHDA {
 
 		let intsts = self.regs.intsts.read();
 		let sis = intsts & 0x3FFFFFFF;      
-		// print!("IHDA INTSTS: {:08X}\n", intsts);     
+   
 		if ((intsts >> 31) & 1) == 1 {           // Global Interrupt Status
 			if ((intsts >> 30) & 1) == 1 {   // Controller Interrupt Status
 				self.handle_controller_interrupt();
@@ -876,7 +875,7 @@ impl IntelHDA {
 	}
 
 	pub fn handle_controller_interrupt(&mut self) {
-		
+		self.cmd.clear_interrupts();
 	}
 
 	pub fn handle_stream_interrupts(&mut self, sis: u32) {
